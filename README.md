@@ -1,9 +1,14 @@
-# Demo app
+# Azure OpenAI RAG + memory Demo app
+
+## Infrastructure
+Obviously, that uses Azure infrastructure. You will need to create following resources (please, follow the sequence):
+1. Azure OpenAI:
+	1. Please, create chat completion deployment. `GPT-4o` is used in this case, but feel free to experiment with others.
 
 ## Running locally
 If you want to test it, you need two things:
-* Install docker
-* Create file, for example `.demo.env` and add the following content there:
+1. Install docker
+2. Create file, for example `.demo.env` and add the following content there:
 ```sh
 AZURE_OPENAI_CHATGPT_DEPLOYMENT=<name of your chat gpt deployment>
 AZURE_OPENAI_ENDPOINT=<endpoint of your Azure Open AI deployment>
@@ -25,11 +30,11 @@ As code is written in `C#`, use `Visual Studio` (`Community Edition` is more tha
 Prior running it, you will need to setup these environment variables:
 
 ```sh
-AZURE_OPENAI_CHATGPT_DEPLOYMENT=<name of your chat gpt deployment>
+AZURE_OPENAI_CHATGPT_DEPLOYMENT=<name of your chat gpt deployment model>
 AZURE_OPENAI_ENDPOINT=<endpoint of your Azure Open AI deployment>
 AZURE_OPENAI_API_KEY=<key for using your Azure Open AI deployment>
 ```
-Then run it as `http`. It should open with `Swagger` on port `5247`. 
+Then run it as `http`. It should open with `Swagger` on port `5247`.
 
 ### Frontend 
 
