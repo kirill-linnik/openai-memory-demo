@@ -1,6 +1,7 @@
 import { Dispatch } from "redux";
 import { ChatMessage } from "../../models/ChatMessage";
 import { ChatRole } from "../../models/ChatRole";
+import { ResponseChoice } from "../../models/ResponseChoice";
 import { backendProvider, extractError } from "../../services/BackendProvider";
 import {
   CHAT_ADD_MESSAGE_FAILURE,
@@ -41,9 +42,8 @@ export function addChatMessage(
         messages: [...history, { role: ChatRole.USER, content: newMessage }],
       };
       const response = await backendProvider.post("/chat", chatRequest);
-      dispatch(
-        chatAddMessageSuccess({ ...response.data, role: ChatRole.ASSISTANT })
-      );
+      var responseChoice: ResponseChoice = response.data;
+      dispatch(chatAddMessageSuccess(responseChoice.message));
     } catch (error) {
       dispatch(chatAddMessageFailure(extractError(error)));
     }

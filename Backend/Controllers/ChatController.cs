@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using Backend.Models;
+﻿using Backend.Models;
 using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,11 +17,11 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> ProcessMessageAsync([FromBody] ChatRequest chatRequest)
+    public async Task<IActionResult> ProcessMessageAsync([FromBody] ChatRequest chatRequest, CancellationToken cancellationToken)
     {
         if (chatRequest is { History.Length: > 0 })
         {
-            var response = await _chatCompletionService.ProcessRequestAsync(chatRequest);
+            var response = await _chatCompletionService.ProcessRequestAsync(chatRequest, cancellationToken);
             return Ok(response);
         }
         return BadRequest("No messages provided");

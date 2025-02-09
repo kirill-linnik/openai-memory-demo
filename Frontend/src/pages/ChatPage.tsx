@@ -1,5 +1,5 @@
 import { SendOutlined } from "@ant-design/icons";
-import { Button, DatePicker, Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import { FC, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import { ChatRole } from "../models/ChatRole";
@@ -7,9 +7,7 @@ import { useAppDispatch, useAppSelector } from "../store";
 import { addChatMessage } from "../store/actions/chatActions";
 import "./ChatStyles.css";
 
-const { RangePicker } = DatePicker;
-
-const MainPage: FC = () => {
+const ChatPage: FC = () => {
   const dispatch = useAppDispatch();
   const chat = useAppSelector((state) => state.chat);
 
@@ -88,4 +86,4 @@ const MainPage: FC = () => {
   );
 };
 
-export default MainPage;
+export default ChatPage;

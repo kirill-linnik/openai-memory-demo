@@ -1,6 +1,5 @@
-
-
 using Backend.Extensions;
+using System.Text.Json.Serialization;
 
 namespace Backend
 {
@@ -11,12 +10,20 @@ namespace Backend
             var builder = WebApplication.CreateBuilder(args);
             var services = builder.Services;
 
-            // Add services to the container.
-            services.AddControllers();
+            // Add services to the container and make enums to strings
+            services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
-            services.AddServices();
+
+            // Add services
+            services.AddAzureServices();
+            services.AddBusinessServices();
 
             // Add CORS policy
             services.AddCors(options =>
@@ -30,6 +37,7 @@ namespace Backend
                     });
             });
 
+            // Add logging
             var app = builder.Build();
 
             app.UseSwagger();

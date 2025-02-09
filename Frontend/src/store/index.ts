@@ -3,6 +3,7 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { combineReducers } from "redux";
 import logger from "redux-logger";
 import chatReducer from "./reducers/chatReducer";
+import documentsReducer from "./reducers/documentsReducer";
 import userReducer from "./reducers/userReducer";
 
 const LOCAL_STORAGE_LOCATION = "demo-store";
@@ -10,6 +11,7 @@ const LOCAL_STORAGE_LOCATION = "demo-store";
 const rootReducer = combineReducers({
   user: userReducer,
   chat: chatReducer,
+  documents: documentsReducer,
 });
 
 const loadFromLocalStorage = (): Partial<typeof rootReducer> => {
