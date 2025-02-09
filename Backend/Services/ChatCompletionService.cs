@@ -23,19 +23,50 @@ public sealed class ChatCompletionService(Kernel kernel, AzureSearchEmbedService
             ? userQuestion
             : throw new InvalidOperationException("Use question is null");
 
+        var languageValues = Enum.GetValues(typeof(SupportedLanguages)).Cast<SupportedLanguages>();
+        var queryLanguages = languageValues.Select(x =>
+        {
+            var language = x.ToString();
+            return @$"""query.{language}"": // the search query translated to {language}. ";
+        });
+        var languages = string.Join(", ", languageValues);
+
         // step 1
         // use llm to get query if retrieval mode is not vector
-        var getQueryChat = new ChatHistory(@"You are a helpful AI assistant, generate search query for followup question.
-Make your respond simple and precise. Return the query only, do not return any other text.
-e.g.
+        var getQueryChat = new ChatHistory(@$"You are a helpful AI assistant, generate search query for followup question.
+Make your respond simple and precise. Query examples:
+
 Northwind Health Plus AND standard plan.
 standard plan AND dental AND employee benefit.
+
+Remember this search query. Later you will need to translate it to other languages. You can translate everything, except AND.
+
+You answer needs to be a json object with the following format.
+{{
+    {string.Join("\n\t", queryLanguages)}
+    ""language"": // the language of the user message. e.g. English, Estonian, Russian etc.
+}}
 ");
 
         getQueryChat.AddUserMessage(question);
         var result = await chat.GetChatMessageContentAsync(getQueryChat, cancellationToken: cancellationToken);
-
-        var query = result.Content ?? throw new InvalidOperationException("Failed to get search query");
+        var queryJson = result.Content ?? throw new InvalidOperationException("Failed to get search query");
+        var queryObject = JsonSerializer.Deserialize<JsonElement>(queryJson);
+        var queryParts = languageValues.Select(x =>
+        {
+            var languageQuery = queryObject.GetProperty($"query.{x}").GetString();
+            if (languageQuery is null)
+            {
+                throw new InvalidOperationException($"Failed to get query in {x}");
+            }
+            if (languageQuery.EndsWith("."))
+            {
+                languageQuery = languageQuery.Substring(0, languageQuery.Length - 1);
+            }
+            return "(" + languageQuery + ")";
+        });
+        var query = string.Join(" OR ", queryParts);
+        var userLanguage = queryObject.GetProperty("language").GetString() ?? throw new InvalidOperationException("Failed to get language");
 
         // step 2
         // use query to search related docs
@@ -74,7 +105,7 @@ standard plan AND dental AND employee benefit.
 {documentContents}
 ## End ##
 
-You must to answer using the same language used by user. If question is in English, you reply in English. If question is in Estonian, you reply in Estonian, and so on.
+Your reply should be only in {userLanguage} language. Translate to {userLanguage} if needed.
 
 You answer needs to be a json object with the following format.
 {{
