@@ -5,6 +5,7 @@ import logger from "redux-logger";
 import chatReducer from "./reducers/chatReducer";
 import documentsReducer from "./reducers/documentsReducer";
 import userReducer from "./reducers/userReducer";
+import userRequestReducer from "./reducers/userRequestReducer";
 
 const LOCAL_STORAGE_LOCATION = "demo-store";
 
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
   user: userReducer,
   chat: chatReducer,
   documents: documentsReducer,
+  userRequest: userRequestReducer,
 });
 
 const loadFromLocalStorage = (): Partial<typeof rootReducer> => {

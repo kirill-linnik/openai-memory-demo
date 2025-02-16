@@ -1,35 +1,41 @@
 import { Dispatch } from "redux";
-import { ThunkAction } from "redux-thunk";
-import { RootState } from "..";
-import { UserAction, USER_LOGIN, USER_LOGOUT } from "../types/userTypes";
+import { User } from "../../models/User";
+import { backendProvider, extractError } from "../../services/BackendProvider";
+import {
+  USER_GET_FAILURE,
+  USER_GET_REQUEST,
+  USER_GET_SUCCESS,
+  UserAction,
+} from "../types/userTypes";
 
-type UserThunk = ThunkAction<void, RootState, unknown, UserAction>;
-
-function userLogin(info: string): UserAction {
+function getUserRequest(): UserAction {
   return {
-    type: USER_LOGIN,
-    info,
+    type: USER_GET_REQUEST,
   };
 }
 
-function userLogout(): UserAction {
+function getUserSuccess(user: User): UserAction {
   return {
-    type: USER_LOGOUT,
+    type: USER_GET_SUCCESS,
+    user,
   };
 }
 
-export const login2 = (): UserThunk => async (dispatch) => {
-  dispatch(userLogin("Logged in via login2"));
-};
-
-export function login() {
-  return async (dispatch: Dispatch<UserAction>) => {
-    dispatch(userLogin("Logged in via login"));
+function getUserFailure(error: string): UserAction {
+  return {
+    type: USER_GET_FAILURE,
+    error,
   };
 }
 
-export function logout() {
+export function getUser() {
   return async (dispatch: Dispatch<UserAction>) => {
-    dispatch(userLogout());
+    dispatch(getUserRequest());
+    try {
+      const response = await backendProvider.get("/user");
+      dispatch(getUserSuccess(response.data));
+    } catch (error) {
+      dispatch(getUserFailure(extractError(error)));
+    }
   };
 }

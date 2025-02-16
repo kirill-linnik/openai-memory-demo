@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace Backend.Services;
 
-public sealed class ChatCompletionService(Kernel kernel, AzureSearchEmbedService azureSearchEmbedService)
+public sealed class ChatCompletionService(Kernel kernel, AzureSearchEmbedService azureSearchEmbedService, UserService userService, UserRequestService userRequestService)
 {
     public async Task<ResponseChoice> ProcessRequestAsync(ChatRequest chatRequest, CancellationToken cancellationToken)
     {
@@ -17,11 +17,11 @@ public sealed class ChatCompletionService(Kernel kernel, AzureSearchEmbedService
 #pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var embedding = kernel.GetRequiredService<ITextEmbeddingGenerationService>();
 #pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var user = userService.GetUser();
+        var userRequest = userRequestService.GetUserRequest(chatRequest.RequestId);
 
-        var history = chatRequest.History;
-        var question = history.LastOrDefault(m => m.IsUser)?.Content is { } userQuestion
-            ? userQuestion
-            : throw new InvalidOperationException("Use question is null");
+
+        var question = chatRequest.Message;
 
         var languageValues = Enum.GetValues(typeof(SupportedLanguages)).Cast<SupportedLanguages>();
         var queryLanguages = languageValues.Select(x =>
@@ -32,8 +32,9 @@ public sealed class ChatCompletionService(Kernel kernel, AzureSearchEmbedService
         var languages = string.Join(", ", languageValues);
 
         // step 1
-        // use llm to get query if retrieval mode is not vector
-        var getQueryChat = new ChatHistory(@$"You are a helpful AI assistant, generate search query for followup question.
+        // use llm to get query
+        var getQueryChat = new ChatHistory(
+@$"You are a helpful AI assistant, generate search query for followup question.
 Make your respond simple and precise. Query examples:
 
 Northwind Health Plus AND standard plan.
@@ -41,12 +42,13 @@ standard plan AND dental AND employee benefit.
 
 Remember this search query. Later you will need to translate it to other languages. You can translate everything, except AND.
 
-You answer needs to be a json object with the following format.
+You answer needs to be a JSON object with the following format.
 {{
     {string.Join("\n\t", queryLanguages)}
     ""language"": // the language of the user message. e.g. English, Estonian, Russian etc.
 }}
-");
+
+If the response is not in JSON format, please retry and provide the correct format.");
 
         getQueryChat.AddUserMessage(question);
         var result = await chat.GetChatMessageContentAsync(getQueryChat, cancellationToken: cancellationToken);
@@ -68,6 +70,46 @@ You answer needs to be a json object with the following format.
         var query = string.Join(" OR ", queryParts);
         var userLanguage = queryObject.GetProperty("language").GetString() ?? throw new InvalidOperationException("Failed to get language");
 
+        // step 1.5
+        // get new information about user and case from the last message
+
+        var userDataChat = new ChatHistory(
+@$"You are an assistant for analyzing user message. Your job is to find update for user profiler and their request.
+
+Always append new information to the current information. You cannot remove current information.
+
+For user profile, use everything that user has said about themselves. For example, if user says ""I like France"", you should update user profile to include this information: ""User likes France""
+
+For user request, collect everything that user wants you to do and details they add about the request. For example, if user says ""I want to book a vacation"", you should update user request to include this information: ""User wants to book a vacation""
+
+Current user profile: ""{user.Profile}""
+Current user request: ""{userRequest.Content}""
+
+User provides new information in the message.
+
+Always reply in English. If needed, translate reply into English.
+
+You answer needs to be a JSON object with the following format.
+{{
+    ""profile"": // updated user profile. Explain everything you know about user. If no new information, put information you already know.
+    ""request"": // updated user request. Explain everything user wants you to do. If no new information, put information you already know.
+}}
+
+If the response is not in JSON format, please retry and provide the correct format.");
+
+        if (userRequest.LastAssistantResponse != null)
+        {
+            userDataChat.AddAssistantMessage(userRequest.LastAssistantResponse);
+        }
+        userDataChat.AddUserMessage(question);
+        var userDataResult = await chat.GetChatMessageContentAsync(userDataChat, cancellationToken: cancellationToken);
+        var userDataJson = userDataResult.Content ?? throw new InvalidOperationException("Failed to get user data");
+        var userDataObject = JsonSerializer.Deserialize<JsonElement>(userDataJson);
+        var updatedUserProfile = userDataObject.GetProperty("profile").GetString() ?? throw new InvalidOperationException("Failed to get profile");
+        var updatedUserRequest = userDataObject.GetProperty("request").GetString() ?? throw new InvalidOperationException("Failed to get request");
+        user.Profile = updatedUserProfile;
+        userRequest.Content = updatedUserRequest;
+
         // step 2
         // use query to search related docs
         var embeddings = (await embedding.GenerateEmbeddingAsync(question, cancellationToken: cancellationToken)).ToArray();
@@ -87,32 +129,39 @@ You answer needs to be a json object with the following format.
         // step 3
         // put together related docs and conversation history to generate answer
         var answerChat = new ChatHistory(
-            "You are a system assistant who helps the company employees with their questions. Be brief in your answers");
-
-        // add chat history
-        foreach (var message in history)
-        {
-            if (message.IsUser)
-            {
-                answerChat.AddUserMessage(message.Content);
-            }
-            else
-            {
-                answerChat.AddAssistantMessage(message.Content);
-            }
-        }
-        var prompt = @$" ## Source ##
+@$"You are an assistant who helps users with their questions. Be brief in your answers.
+## Source ##
 {documentContents}
 ## End ##
 
+## User Profile ##
+{updatedUserProfile}
+## End ##
+
+## User Request ##
+{updatedUserRequest}
+## End ##
+
+Use User Profile to undertand user better and User Request to help user with their request. Use Source to provide information to user.
+
+For reference, today is: {DateTime.Now:yyyy-MM-dd}.
+
 Your reply should be only in {userLanguage} language. Translate to {userLanguage} if needed.
 
-You answer needs to be a json object with the following format.
+You answer needs to be a JSON object with the following format:
 {{
-    ""answer"": // the answer to the question, add a source reference to the end of each sentence. e.g. Apple is a fruit [reference1.pdf][reference2.pdf]. Escape all special characters. If no source available, put the answer as I don't know.
-    ""thoughts"": // brief thoughts on how you came up with the answer, e.g. what sources you used, what you thought about, etc. Escape all special characters. 
-}}";
-        answerChat.AddUserMessage(prompt);
+    ""answer"": // the answer to the question, add a source reference to the end of each sentence. e.g. Apple is a fruit [reference1.pdf][reference2.pdf]. If no source available, put the answer as I don't know.
+    ""thoughts"": // brief thoughts on how you came up with the answer, e.g. what sources you used, how did you use user profile and user request, what you thought about, etc. 
+}}
+
+If the response is not in JSON format, please retry and provide the correct format.");
+
+
+        if (userRequest.LastAssistantResponse != null)
+        {
+            answerChat.AddAssistantMessage(userRequest.LastAssistantResponse);
+        }
+        answerChat.AddUserMessage(question);
 
         var promptExecutingSetting = new OpenAIPromptExecutionSettings
         {
@@ -140,6 +189,8 @@ You answer needs to be a json object with the following format.
         var choice = new ResponseChoice(
             Message: responseMessage,
             Context: responseContext);
+
+        userRequest.LastAssistantResponse = ans;
 
         return choice;
     }

@@ -3,8 +3,9 @@
 namespace Backend.Models;
 
 public record class ChatRequest(
-    [property: JsonPropertyName("messages")] ChatMessage[] History
+    [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("requestId")] string RequestId
     )
 {
-    public string? LastUserQuestion => History?.Last(m => m.Role == "user")?.Content;
+
 }

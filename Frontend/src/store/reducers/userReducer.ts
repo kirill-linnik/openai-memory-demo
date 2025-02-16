@@ -1,17 +1,24 @@
-import { UserAction, UserState, USER_LOGIN } from "../types/userTypes";
+import {
+  USER_GET_FAILURE,
+  USER_GET_SUCCESS,
+  UserAction,
+  UserState,
+} from "../types/userTypes";
 import commonReducer from "./commonReducer";
 
-const initialState: UserState = {
-  isLoggedIn: false,
-};
+const initialState: UserState = {};
 
 const userReducer = (state = initialState, action: UserAction): UserState => {
   switch (action.type) {
-    case USER_LOGIN:
+    case USER_GET_SUCCESS:
       return {
         ...state,
-        isLoggedIn: true,
-        info: action.info,
+        user: action.user,
+      };
+    case USER_GET_FAILURE:
+      return {
+        ...initialState,
+        error: action.error,
       };
     default:
       return commonReducer(state, initialState, action);

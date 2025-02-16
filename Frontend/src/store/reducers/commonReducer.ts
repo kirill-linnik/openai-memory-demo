@@ -1,9 +1,8 @@
 import {
-  CommonState,
   COMMON_REMOVE_ERROR,
   COMMON_REMOVE_INFO,
+  CommonState,
 } from "../types/commonTypes";
-import { USER_LOGOUT } from "../types/userTypes";
 
 const commonReducer = (
   state: CommonState,
@@ -21,8 +20,6 @@ const commonReducer = (
         ...state,
         info: undefined,
       };
-    case USER_LOGOUT:
-      return initialState;
     default:
       return state;
   }

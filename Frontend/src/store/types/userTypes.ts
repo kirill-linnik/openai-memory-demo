@@ -1,19 +1,30 @@
-import { CommonState } from "./commonTypes";
+import { User } from "../../models/User";
+import { CommonAction, CommonState } from "./commonTypes";
 
-export const USER_LOGIN = "@USER/LOGIN";
-export const USER_LOGOUT = "@USER/LOGOUT";
+export const USER_GET_REQUEST = "@USER/GET_REQUEST";
+export const USER_GET_SUCCESS = "@USER/GET_SUCCESS";
+export const USER_GET_FAILURE = "@USER/GET_FAILURE";
 
 export type UserState = CommonState & {
-  isLoggedIn: boolean;
+  user?: User;
 };
 
-type UserLoginAction = {
-  type: typeof USER_LOGIN;
-  info: string;
+type UserGetRequestAction = {
+  type: typeof USER_GET_REQUEST;
 };
 
-type UserLogoutAction = {
-  type: typeof USER_LOGOUT;
+type UserGetSuccessAction = {
+  type: typeof USER_GET_SUCCESS;
+  user: User;
 };
 
-export type UserAction = UserLoginAction | UserLogoutAction;
+type UserGetFailureAction = {
+  type: typeof USER_GET_FAILURE;
+  error: string;
+};
+
+export type UserAction =
+  | CommonAction
+  | UserGetRequestAction
+  | UserGetSuccessAction
+  | UserGetFailureAction;

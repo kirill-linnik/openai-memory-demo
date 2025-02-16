@@ -17,6 +17,8 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<ChatCompletionService>();
         services.AddSingleton<AzureSearchEmbedService>();
         services.AddSingleton<AzureBlobStorageService>();
+        services.AddSingleton<UserService>();
+        services.AddSingleton<UserRequestService>();
 
         return services;
     }

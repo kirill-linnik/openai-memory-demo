@@ -6,24 +6,16 @@ namespace Backend.Controllers;
 
 [ApiController]
 [Route("chat")]
-public class ChatController : ControllerBase
+public class ChatController(ChatCompletionService chatCompletionService) : ControllerBase
 {
-
-    private readonly ChatCompletionService _chatCompletionService;
-
-    public ChatController(ChatCompletionService chatCompletionService)
-    {
-        _chatCompletionService = chatCompletionService;
-    }
-
     [HttpPost]
     public async Task<IActionResult> ProcessMessageAsync([FromBody] ChatRequest chatRequest, CancellationToken cancellationToken)
     {
-        if (chatRequest is { History.Length: > 0 })
-        {
-            var response = await _chatCompletionService.ProcessRequestAsync(chatRequest, cancellationToken);
-            return Ok(response);
-        }
-        return BadRequest("No messages provided");
+        ArgumentNullException.ThrowIfNull(chatRequest, nameof(chatRequest));
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(chatRequest.Message, nameof(chatRequest.Message));
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(chatRequest.RequestId, nameof(chatRequest.RequestId));
+
+        var response = await chatCompletionService.ProcessRequestAsync(chatRequest, cancellationToken);
+        return Ok(response);
     }
 }

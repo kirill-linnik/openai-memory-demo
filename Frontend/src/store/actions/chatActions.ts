@@ -31,19 +31,22 @@ function chatAddMessageFailure(error: string): ChatAction {
   };
 }
 
-export function addChatMessage(
-  history: Array<ChatMessage>,
-  newMessage: string
-) {
+export function addChatMessage(chatRequestId: string, newMessage: string) {
   return async (dispatch: Dispatch<ChatAction>) => {
     dispatch(chatAddMessageRequest(newMessage));
     try {
       const chatRequest = {
-        messages: [...history, { role: ChatRole.USER, content: newMessage }],
+        message: newMessage,
+        requestId: chatRequestId,
       };
       const response = await backendProvider.post("/chat", chatRequest);
       var responseChoice: ResponseChoice = response.data;
-      dispatch(chatAddMessageSuccess(responseChoice.message));
+      var chatMessage: ChatMessage = {
+        role: ChatRole.ASSISTANT,
+        content: responseChoice.message.content,
+        context: responseChoice.context,
+      };
+      dispatch(chatAddMessageSuccess(chatMessage));
     } catch (error) {
       dispatch(chatAddMessageFailure(extractError(error)));
     }

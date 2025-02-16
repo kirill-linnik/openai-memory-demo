@@ -1,5 +1,5 @@
 import { DocumentResponse } from "../../models/DocumentResponse";
-import { CommonState } from "./commonTypes";
+import { CommonAction, CommonState } from "./commonTypes";
 
 export const DOCUMENTS_ADD_FILE_REQUEST = "@DOCUMENTS/ADD_FILE_REQUEST";
 export const DOCUMENTS_ADD_FILE_SUCCESS = "@DOCUMENTS/ADD_FILE_SUCCESS";
@@ -41,6 +41,7 @@ type DocumentsGetAllFailureAction = {
 };
 
 export type DocumentsAction =
+  | CommonAction
   | DocumentsAddFileRequestAction
   | DocumentsAddFileSuccessAction
   | DocumentsAddFileFailureAction

@@ -1,5 +1,5 @@
 import { ChatMessage } from "../../models/ChatMessage";
-import { CommonState } from "./commonTypes";
+import { CommonAction, CommonState } from "./commonTypes";
 
 export const CHAT_ADD_MESSAGE_REQUEST = "@CHAT/ADD_MESSAGE_REQUEST";
 export const CHAT_ADD_MESSAGE_SUCCESS = "@CHAT/ADD_MESSAGE_SUCCESS";
@@ -25,6 +25,7 @@ type ChatAddMessageFailureAction = {
 };
 
 export type ChatAction =
+  | CommonAction
   | ChatAddMessageRequestAction
   | ChatAddMessageSuccessAction
   | ChatAddMessageFailureAction;
