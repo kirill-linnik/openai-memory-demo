@@ -139,32 +139,34 @@ public sealed class AzureBlobStorageService
         {
             if (blob is not null and { Deleted: false })
             {
-                var props = blob.Properties;
+                var blobClient = _container.GetBlobClient(blob.Name);
+                var properties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
 
-                var metadata = blob.Metadata;
+                var metadata = properties.Value.Metadata;
+
                 var documentProcessingStatus = GetMetadataEnumOrDefault<DocumentProcessingStatus>(
                     metadata, nameof(DocumentProcessingStatus), DocumentProcessingStatus.NotProcessed);
 
                 documents.Add(
                     new DocumentResponse(
                         blob.Name,
-                        props.ContentType,
-                        props.ContentLength ?? 0,
-                        props.LastModified,
+                        properties.Value.ContentType,
+                        properties.Value.ContentLength,
+                        properties.Value.LastModified,
                         documentProcessingStatus
                     ));
+            }
+        }
+        return documents;
+    }
 
-                static TEnum GetMetadataEnumOrDefault<TEnum>(
+    private static TEnum GetMetadataEnumOrDefault<TEnum>(
                     IDictionary<string, string> metadata,
                     string key,
                     TEnum @default) where TEnum : struct => metadata.TryGetValue(key, out var value)
                         && Enum.TryParse<TEnum>(value, out var status)
                             ? status
                             : @default;
-            }
-        }
-        return documents;
-    }
 
     private static string BlobNameFromFilePage(string filename, int page = 0) =>
         Path.GetExtension(filename).ToLower() is ".pdf"

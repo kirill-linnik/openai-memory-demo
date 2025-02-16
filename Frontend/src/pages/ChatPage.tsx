@@ -2,6 +2,7 @@ import { InfoCircleOutlined, SendOutlined } from "@ant-design/icons";
 import { Button, Form, Input, Popover } from "antd";
 import { FC, ReactNode, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { ErrorBlock } from "../components/ErrorBlock";
 import { ChatRole } from "../models/ChatRole";
 import { generateUUIDv4 } from "../services/UuidGenerator";
 import { useAppDispatch, useAppSelector } from "../store";
@@ -79,44 +80,47 @@ const ChatPage: FC = () => {
   };
 
   return (
-    <div className="container">
-      <strong>Chat request ID:</strong> {chatRequestId}
-      <br />
-      <strong>User profile:</strong> {user.user?.profile}
-      <br />
-      <strong>USer request:</strong> {userRequest.userRequest?.content}
-      {displayChatHistory()}
-      <div className="msg-bottom">
-        <div className="input-group">
-          <Form
-            name="chatForm"
-            initialValues={{
-              layout: "inline",
-            }}
-            form={form}
-            layout="inline"
-            onFinish={submitChatMessage}
-          >
-            <Form.Item
-              name="text"
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
-              style={{ width: "800px" }}
+    <>
+      <ErrorBlock error={chat.error} />
+      <div className="container">
+        <strong>Chat request ID:</strong> {chatRequestId}
+        <br />
+        <strong>User profile:</strong> {user.user?.profile}
+        <br />
+        <strong>User request:</strong> {userRequest.userRequest?.content}
+        {displayChatHistory()}
+        <div className="msg-bottom">
+          <div className="input-group">
+            <Form
+              name="chatForm"
+              initialValues={{
+                layout: "inline",
+              }}
+              form={form}
+              layout="inline"
+              onFinish={submitChatMessage}
             >
-              <Input placeholder="Type a message" />
-            </Form.Item>
-            <Form.Item>
-              <Button type="primary" htmlType="submit">
-                <SendOutlined />
-              </Button>
-            </Form.Item>
-          </Form>
+              <Form.Item
+                name="text"
+                rules={[
+                  {
+                    required: true,
+                  },
+                ]}
+                style={{ width: "800px" }}
+              >
+                <Input placeholder="Type a message" />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit">
+                  <SendOutlined />
+                </Button>
+              </Form.Item>
+            </Form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
